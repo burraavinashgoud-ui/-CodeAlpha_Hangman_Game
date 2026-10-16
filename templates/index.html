@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hangman Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="game-container">
+        <p class="badge">PYTHON PROJECT</p>
+        <h1>Hangman <span>Game</span></h1>
+        <p class="subtitle">Find the hidden word, one letter at a time.</p>
+
+        <section class="stats">
+            <div class="stat"><small>Attempts left</small><strong id="remaining">6</strong></div>
+            <div class="stat"><small>Letters guessed</small><strong id="count">0</strong></div>
+        </section>
+
+        <div id="word" class="word-display" aria-live="polite">_ _ _ _ _ _</div>
+        <p id="message" class="message">Choose a letter below to make your guess.</p>
+
+        <label for="letterInput">Your guess</label>
+        <form id="guessForm" class="input-area">
+            <input id="letterInput" type="text" maxlength="1" pattern="[A-Za-z]" placeholder="A" autocomplete="off" required>
+            <button type="submit" id="guessButton">Guess</button>
+        </form>
+        <p id="guessed" class="guessed">Guessed letters: none</p>
+        <button type="button" id="restart" class="restart-button">↻ New Game</button>
+        <p id="error" class="error" role="alert"></p>
+    </main>
+
+    <script>
+        // This game runs entirely in the browser, so it works on GitHub Pages
+        // without requiring a Flask server or API endpoints.
+        const WORDS = ["PYTHON", "APPLE", "TIGER", "SCHOOL", "COMPUTER"];
+        const MAX_WRONG_GUESSES = 6;
+        const wordElement = document.getElementById("word");
+        const remainingElement = document.getElementById("remaining");
+        const countElement = document.getElementById("count");
+        const messageElement = document.getElementById("message");
+        const guessedElement = document.getElementById("guessed");
+        const input = document.getElementById("letterInput");
+        const guessButton = document.getElementById("guessButton");
+        const errorElement = document.getElementById("error");
+        let word = "";
+        let guessedLetters = new Set();
+        let wrongGuesses = 0;
+        let finished = false;
+
+        function updateGame() {
+            const won = [...word].every(letter => guessedLetters.has(letter));
+            const lost = wrongGuesses >= MAX_WRONG_GUESSES;
+            wordElement.textContent = [...word].map(letter => guessedLetters.has(letter) ? letter : "_").join(" ");
+            remainingElement.textContent = MAX_WRONG_GUESSES - wrongGuesses;
+            countElement.textContent = guessedLetters.size;
+            const letters = [...guessedLetters].sort();
+            guessedElement.textContent = "Guessed letters: " + (letters.length ? letters.join(", ") : "none");
+
+            if (won) {
+                messageElement.textContent = "🎉 You won! Great job.";
+            } else if (lost) {
+                messageElement.textContent = `Game over! The word was ${word}.`;
+            } else {
+                messageElement.textContent = "Choose a letter below to make your guess.";
+            }
+            finished = won || lost;
+            input.disabled = finished;
+            guessButton.disabled = finished;
+        }
+
+        function newGame() {
+            word = WORDS[Math.floor(Math.random() * WORDS.length)];
+            guessedLetters = new Set();
+            wrongGuesses = 0;
+            finished = false;
+            errorElement.textContent = "";
+            input.value = "";
+            input.disabled = false;
+            guessButton.disabled = false;
+            updateGame();
+            input.focus();
+        }
+
+        document.getElementById("guessForm").addEventListener("submit", event => {
+            event.preventDefault();
+            errorElement.textContent = "";
+            if (finished) return;
+            const letter = input.value.trim().toUpperCase();
+            if (!/^[A-Z]$/.test(letter)) {
+                errorElement.textContent = "Enter one letter from A to Z.";
+                return;
+            }
+            if (guessedLetters.has(letter)) {
+                errorElement.textContent = `You already guessed ${letter}. Try another letter.`;
+                input.select();
+                return;
+            }
+            guessedLetters.add(letter);
+            if (!word.includes(letter)) wrongGuesses++;
+            input.value = "";
+            updateGame();
+            if (!finished) input.focus();
+        });
+
+        document.getElementById("restart").addEventListener("click", newGame);
+        newGame();
+    </script>
+</body>
+</html>
